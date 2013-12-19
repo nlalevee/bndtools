@@ -101,3 +101,7 @@ junit3:                   junit.osgi;version=3.8.2;export="junit.framework;versi
 
 # Extra Headers
 Bundle-License:           http://www.eclipse.org/legal/epl-v10.html
+
+
+# Temporarily change the default verbosity for the Gradle build
+-verbose: false
