@@ -7,7 +7,6 @@ import java.util.List;
 import org.bndtools.api.ILogger;
 import org.bndtools.api.Logger;
 import org.bndtools.builder.classpath.BndContainerInitializer;
-import org.bndtools.utils.workspace.WorkspaceUtils;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -36,16 +35,15 @@ class AdjustClasspathsForNewProjectJob extends WorkspaceJob {
         List<Project> projects;
         SubMonitor progress;
         try {
-            projects = new ArrayList<Project>(Central.getWorkspace().getAllProjects());
+            projects = new ArrayList<Project>(Central.getWorkspaceWorkspace().getAllProjects());
             progress = SubMonitor.convert(monitor, projects.size());
         } catch (Exception e) {
             return Status.CANCEL_STATUS;
         }
 
-        IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
         while (!projects.isEmpty()) {
             Project project = projects.remove(0);
-            IProject eclipseProject = WorkspaceUtils.findOpenProject(wsroot, project);
+            IProject eclipseProject = Central.getIProject(project);
             if (eclipseProject != null && !eclipseProject.equals(addedProject)) {
                 List<String> errors = new LinkedList<String>();
                 try {

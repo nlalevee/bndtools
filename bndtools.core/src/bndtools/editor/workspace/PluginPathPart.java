@@ -180,7 +180,7 @@ public class PluginPathPart extends SectionPart implements PropertyChangeListene
     void doAdd() {
         FileDialog dialog = new FileDialog(getManagedForm().getForm().getShell(), SWT.OPEN | SWT.MULTI);
         try {
-            File wsdir = Central.getWorkspace().getBase();
+            File wsdir = Central.getWorkspaceWorkspace().getBase();
             File cnfdir = new File(wsdir, Workspace.CNFDIR);
             dialog.setFilterPath(cnfdir.getAbsolutePath());
             dialog.setFilterExtensions(new String[] {

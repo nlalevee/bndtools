@@ -282,7 +282,7 @@ public class RepositorySelectionPart extends BndEditorPart {
         allRepos.clear();
 
         try {
-            allRepos.addAll(Central.getWorkspace().getPlugins(Repository.class));
+            allRepos.addAll(Central.getWorkspaceWorkspace().getPlugins(Repository.class));
         } catch (Exception e) {
             messages.addMessage(MESSAGE_KEY, "Repository List: Unable to load OSGi Repositories. " + e.getMessage(), e, IMessageProvider.ERROR, viewer.getControl());
 

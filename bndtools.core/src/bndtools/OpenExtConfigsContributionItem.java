@@ -34,7 +34,7 @@ public class OpenExtConfigsContributionItem extends CompoundContributionItem {
     @Override
     protected IContributionItem[] getContributionItems() {
         try {
-            IFile buildFile = Central.getWorkspaceBuildFile();
+            IFile buildFile = Central.getWorkspaceBuildFile(Central.getWorkspaceWorkspace());
             if (buildFile == null)
                 return EMPTY;
 

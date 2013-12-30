@@ -63,7 +63,7 @@ class LocalRepositorySelectionPage extends WizardPage {
         });
 
         try {
-            Workspace workspace = Central.getWorkspace();
+            Workspace workspace = Central.getWorkspaceWorkspace();
             viewer.setInput(workspace);
             if (selectedRepository != null)
                 viewer.setSelection(new StructuredSelection(selectedRepository));

@@ -69,7 +69,7 @@ public class BuiltBundleIndexer extends AbstractBuildListener {
         File indexFile;
         OutputStream output = null;
         try {
-            Project model = Central.getProject(project.getLocation().toFile());
+            Project model = Central.getModel(project);
             File target = model.getTarget();
             indexFile = new File(target, INDEX_FILENAME);
 
@@ -77,7 +77,7 @@ public class BuiltBundleIndexer extends AbstractBuildListener {
 
             // Create the indexer and add ResourceAnalyzers from plugins
             RepoIndex indexer = new RepoIndex(logAdapter);
-            List<ResourceAnalyzer> analyzers = Central.getWorkspace().getPlugins(ResourceAnalyzer.class);
+            List<ResourceAnalyzer> analyzers = model.getWorkspace().getPlugins(ResourceAnalyzer.class);
             for (ResourceAnalyzer analyzer : analyzers) {
                 indexer.addAnalyzer(analyzer, null);
             }

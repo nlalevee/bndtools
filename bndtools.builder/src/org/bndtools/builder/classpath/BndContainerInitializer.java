@@ -124,7 +124,7 @@ public class BndContainerInitializer extends ClasspathContainerInitializer imple
         IClasspathEntry[] entries = new IClasspathEntry[0];
         Project model;
         try {
-            model = Central.getProject(project.getProject().getLocation().toFile());
+            model = Central.getModel(project.getProject());
         } catch (Exception e) {
             // Abort quickly if there is no Bnd workspace
             setClasspathEntries(project, entries);

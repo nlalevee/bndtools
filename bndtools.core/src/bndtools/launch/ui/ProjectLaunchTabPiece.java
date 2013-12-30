@@ -168,7 +168,7 @@ public class ProjectLaunchTabPiece extends AbstractLaunchTabPiece {
     static List<IProject> loadProjects() {
         Collection<Project> projects;
         try {
-            Workspace workspace = Central.getWorkspace();
+            Workspace workspace = Central.getWorkspaceWorkspace();
             projects = workspace.getAllProjects();
         } catch (Exception e) {
             logger.logError("Internal error querying projects.", e);

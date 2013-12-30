@@ -23,19 +23,12 @@ public class RepositoryUtils {
     private static final Object CACHE_REPO = "cache";
     private static final String VERSION_LATEST = "latest";
 
-    public static List<RepositoryPlugin> listRepositories(boolean hideCache) {
-        Workspace workspace;
-        try {
-            workspace = Central.getWorkspace();
-        } catch (Exception e1) {
-            return Collections.emptyList();
-        }
-
+    public static List<RepositoryPlugin> listRepositories(Workspace workspace, boolean hideCache) {
         try {
             List<RepositoryPlugin> plugins = workspace.getPlugins(RepositoryPlugin.class);
             List<RepositoryPlugin> repos = new ArrayList<RepositoryPlugin>(plugins.size() + 1);
 
-            repos.add(Central.getWorkspaceRepository());
+            repos.add(Central.getWorkspaceRepository(workspace));
 
             for (RepositoryPlugin plugin : plugins) {
                 if (!hideCache || !CACHE_REPO.equals(plugin.getName()))

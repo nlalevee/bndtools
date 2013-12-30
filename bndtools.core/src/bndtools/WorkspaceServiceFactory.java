@@ -14,7 +14,7 @@ public class WorkspaceServiceFactory implements ServiceFactory<Workspace> {
 
     public Workspace getService(Bundle bundle, ServiceRegistration<Workspace> registration) {
         try {
-            return Central.getWorkspace();
+            return Central.getWorkspaceWorkspace();
         } catch (Exception e) {
             logger.logError("Unable to initialise bnd workspace.", e);
             throw new IllegalArgumentException("Unable to initialise bnd workspace.", e);

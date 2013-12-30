@@ -62,7 +62,7 @@ public class CnfSetupBuildListener extends AbstractBuildListener {
         public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
             Collection<Project> projects = null;
             try {
-                Workspace ws = Central.getWorkspace();
+                Workspace ws = Central.getWorkspaceWorkspace();
                 projects = ws.getBuildOrder();
             } catch (Exception e) {
                 throw new CoreException(new Status(IStatus.ERROR, NewBuilder.PLUGIN_ID, 0, "Error rebuilding bnd projects after creating workspace configuration.", e));

@@ -26,21 +26,24 @@ public class RefreshReposHandler extends AbstractHandler {
 
     private static final ILogger logger = Logger.getLogger(RefreshReposHandler.class);
 
+    @Override
     public Object execute(ExecutionEvent event) throws ExecutionException {
         IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindow(event);
         try {
-            final IFile buildFile = Central.getWorkspaceBuildFile();
+            final IFile buildFile = Central.getWorkspaceBuildFile(Central.getWorkspaceWorkspace());
             if (buildFile == null) {
                 MessageDialog.openError(window.getShell(), "Error", "Unable to refresh repositories: workspace build file is missing.");
                 return null;
             }
 
             window.run(true, false, new IRunnableWithProgress() {
+                @Override
                 public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
                     try {
                         buildFile.getWorkspace().run(new IWorkspaceRunnable() {
+                            @Override
                             public void run(IProgressMonitor monitor) throws CoreException {
-                                List<RepositoryPlugin> repos = RepositoryUtils.listRepositories(true);
+                                List<RepositoryPlugin> repos = RepositoryUtils.listRepositories(Central.getWorkspaceWorkspace(), true);
                                 for (RepositoryPlugin i : repos) {
                                     if (i instanceof Refreshable) {
                                         boolean success = false;

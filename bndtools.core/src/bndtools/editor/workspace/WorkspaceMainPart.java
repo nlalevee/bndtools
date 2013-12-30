@@ -92,7 +92,7 @@ public class WorkspaceMainPart extends SectionPart {
         try {
             Composite container = (Composite) getSection().getClient();
 
-            IFile buildFile = Central.getWorkspaceBuildFile();
+            IFile buildFile = Central.getWorkspaceBuildFile(Central.getWorkspaceWorkspace());
             if (buildFile == null)
                 return;
 

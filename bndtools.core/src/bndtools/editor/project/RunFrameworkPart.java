@@ -159,7 +159,7 @@ public class RunFrameworkPart extends BndEditorPart implements PropertyChangeLis
                 IMessageManager messages = getManagedForm().getMessageManager();
                 messages.removeMessage(MESSAGE_KEY, cmbFramework);
                 try {
-                    frameworkViewer.setInput(Central.getWorkspace());
+                    frameworkViewer.setInput(Central.getWorkspaceWorkspace());
                 } catch (Exception e) {
                     messages.addMessage(MESSAGE_KEY, "Unable to load OSGi Framework list. " + e.getMessage(), null, IMessageProvider.ERROR, cmbFramework);
                 }

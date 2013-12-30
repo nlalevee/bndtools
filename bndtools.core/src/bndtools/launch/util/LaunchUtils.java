@@ -40,7 +40,7 @@ public final class LaunchUtils {
         IProject project = launchResource.getProject();
         Project bnd;
         try {
-            bnd = Central.getWorkspace().getProject(project.getName());
+            bnd = Central.getModel(project);
         } catch (Exception e) {
             bnd = null;
         }
@@ -60,6 +60,7 @@ public final class LaunchUtils {
         Project result;
 
         IProject project = targetResource.getProject();
+        Project model = Central.getModel(project);
         File projectDir = project.getLocation().toFile();
 
         if (targetResource.getType() == IResource.FILE && targetResource.getName().endsWith(LaunchConstants.EXT_BNDRUN)) {
@@ -70,8 +71,8 @@ public final class LaunchUtils {
             File runFile = targetResource.getLocation().toFile();
             File bndbnd = new File(runFile.getParentFile(), Project.BNDFILE);
             try {
-                Project parent = new Project(Central.getWorkspace(), projectDir, bndbnd);
-                result = new Project(Central.getWorkspace(), projectDir, runFile);
+                Project parent = new Project(model.getWorkspace(), projectDir, bndbnd);
+                result = new Project(model.getWorkspace(), projectDir, runFile);
                 result.setParent(parent);
             } catch (Exception e) {
                 throw new CoreException(new Status(IStatus.ERROR, Plugin.PLUGIN_ID, 0, MessageFormat.format("Failed to create synthetic project for run file {0} in project {1}.", targetResource.getProjectRelativePath().toString(),
@@ -82,7 +83,7 @@ public final class LaunchUtils {
             if (!project.hasNature(BndtoolsConstants.NATURE_ID))
                 throw new CoreException(new Status(IStatus.ERROR, Plugin.PLUGIN_ID, 0, MessageFormat.format("The configured run project \"{0}\"is not a Bnd project.", project.getName()), null));
             try {
-                result = Central.getProject(projectDir);
+                result = Central.getModel(project);
             } catch (Exception e) {
                 throw new CoreException(new Status(IStatus.ERROR, Plugin.PLUGIN_ID, 0, MessageFormat.format("Failed to retrieve Bnd project model for project \"{0}\".", project.getName()), null));
             }

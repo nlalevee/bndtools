@@ -69,7 +69,7 @@ public class ProjectLocationGroup {
 
         Workspace ws;
         try {
-            ws = Central.getWorkspace();
+            ws = Central.getWorkspaceWorkspace();
         } catch (Exception e) {
             ws = null;
         }

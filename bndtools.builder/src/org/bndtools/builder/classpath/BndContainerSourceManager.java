@@ -31,6 +31,7 @@ import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 
+import aQute.bnd.build.Project;
 import aQute.bnd.build.Workspace;
 import aQute.bnd.build.WorkspaceRepository;
 import aQute.bnd.header.Attrs;
@@ -91,6 +92,17 @@ public class BndContainerSourceManager {
      * attached sources added.
      */
     public static List<IClasspathEntry> loadAttachedSources(final IJavaProject project, final List<IClasspathEntry> classPathEntries) throws CoreException {
+        Workspace bndWorkspace;
+        try {
+            Project model = Central.getModel(project.getProject());
+            if (model == null) {
+                return null;
+            }
+            bndWorkspace = model.getWorkspace();
+        } catch (Exception e) {
+            return null;
+        }
+
         final Properties props = loadSourceAttachmentProperties(project.getProject());
 
         final List<IClasspathEntry> configuredClassPathEntries = new ArrayList<IClasspathEntry>(classPathEntries.size());
@@ -120,7 +132,7 @@ public class BndContainerSourceManager {
                     extraProps.put(attr.getName(), attr.getValue());
                 }
 
-                File sourceBundle = getSourceBundle(entry.getPath(), extraProps);
+                File sourceBundle = getSourceBundle(bndWorkspace, entry.getPath(), extraProps);
                 if (sourceBundle != null) {
                     srcPath = new Path(sourceBundle.getAbsolutePath());
                 }
@@ -136,18 +148,7 @@ public class BndContainerSourceManager {
         return configuredClassPathEntries;
     }
 
-    private static File getSourceBundle(IPath path, Map<String,String> props) {
-        Workspace bndWorkspace;
-
-        try {
-            bndWorkspace = Central.getWorkspace();
-            if (bndWorkspace == null) {
-                return null;
-            }
-        } catch (final Exception e) {
-            return null;
-        }
-
+    private static File getSourceBundle(Workspace bndWorkspace, IPath path, Map<String,String> props) {
         IPath bundlePath = path;
         IWorkspace workspace = ResourcesPlugin.getWorkspace();
         IWorkspaceRoot root = workspace.getRoot();
@@ -165,7 +166,7 @@ public class BndContainerSourceManager {
             }
 
             Domain domain = Domain.domain(manifest);
-            Entry<String, Attrs> bsnAttrs = domain.getBundleSymbolicName();
+            Entry<String,Attrs> bsnAttrs = domain.getBundleSymbolicName();
             if (bsnAttrs == null) {
                 return null;
             }
@@ -176,7 +177,7 @@ public class BndContainerSourceManager {
                 version = props.get("version");
             }
 
-            for (RepositoryPlugin repo : RepositoryUtils.listRepositories(true)) {
+            for (RepositoryPlugin repo : RepositoryUtils.listRepositories(bndWorkspace, true)) {
                 if (repo == null) {
                     continue;
                 }
@@ -216,8 +217,8 @@ public class BndContainerSourceManager {
         return props;
     }
 
-	private static File getSourceAttachmentPropertiesFile(final IProject project) {
-		return new File(BuilderPlugin.getInstance().getStateLocation().toFile(), project.getName() + ".sources"); //$NON-NLS-1$
-	}
+    private static File getSourceAttachmentPropertiesFile(final IProject project) {
+        return new File(BuilderPlugin.getInstance().getStateLocation().toFile(), project.getName() + ".sources"); //$NON-NLS-1$
+    }
 
 }

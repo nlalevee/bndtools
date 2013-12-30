@@ -33,6 +33,7 @@ import aQute.bnd.service.RepositoryPlugin;
 import aQute.bnd.service.ResolutionPhase;
 import bndtools.BndConstants;
 import bndtools.Plugin;
+import bndtools.central.Central;
 import bndtools.central.RepositoryUtils;
 import bndtools.editor.common.BndEditorPart;
 import bndtools.model.repo.RepositoryBundle;
@@ -185,7 +186,7 @@ public class AvailableBundlesPart extends BndEditorPart {
     protected void refreshFromModel() {
         List<String> tmp = model.getRunRepos();
         includedRepos = (tmp == null) ? null : new HashSet<String>(tmp);
-        viewer.setInput(RepositoryUtils.listRepositories(true));
+        viewer.setInput(RepositoryUtils.listRepositories(Central.getWorkspaceWorkspace(), true));
     }
 
     @Override

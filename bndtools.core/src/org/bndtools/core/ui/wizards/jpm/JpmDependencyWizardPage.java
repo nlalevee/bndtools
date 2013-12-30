@@ -223,7 +223,7 @@ public class JpmDependencyWizardPage extends WizardPage {
         if (!queried) {
             errorText = null;
             try {
-                Workspace workspace = Central.getWorkspace();
+                Workspace workspace = Central.getWorkspaceWorkspace();
                 repository = workspace.getPlugin(SearchableRepository.class);
                 if (repository == null)
                     throw new Exception("No searchable repository is configured in the workspace. Try adding the JPM4J plugin.");

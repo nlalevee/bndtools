@@ -88,7 +88,7 @@ public class ReleaseAction implements IObjectActionDelegate {
 			Project project;
 			try {
 			    IProject iProject = iFile.getProject();
-				project = Central.getWorkspace().getProject(iProject.getName());
+				project = Central.getModel(iProject);
 				// .bnd files exists in cnf that are unreleasable
 				if (project == null || project.isCnf()) {
 				    continue;

@@ -276,8 +276,8 @@ public class RepoBundleSelectionWizardPage extends WizardPage {
     }
 
     protected void refreshBundleList() throws Exception {
-        Central.getWorkspace().refresh();
-        availableViewer.setInput(RepositoryUtils.listRepositories(true));
+        Central.getWorkspaceWorkspace().refresh();
+        availableViewer.setInput(RepositoryUtils.listRepositories(Central.getWorkspaceWorkspace(), true));
     }
 
     void doAdd() {

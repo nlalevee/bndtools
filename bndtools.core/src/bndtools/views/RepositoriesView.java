@@ -311,8 +311,8 @@ public class RepositoriesView extends ViewPart implements RepositoryListenerPlug
         // LOAD
         Central.onWorkspaceInit(new Function<Workspace,Void>() {
             @Override
-            public Void run(Workspace a) {
-                final List<RepositoryPlugin> repositories = RepositoryUtils.listRepositories(true);
+            public Void run(Workspace workspace) {
+                final List<RepositoryPlugin> repositories = RepositoryUtils.listRepositories(workspace, true);
                 SWTConcurrencyUtil.execForControl(viewer.getControl(), true, new Runnable() {
                     @Override
                     public void run() {
@@ -497,7 +497,7 @@ public class RepositoriesView extends ViewPart implements RepositoryListenerPlug
                                             try {
                                                 e.getValue().run();
                                                 if (rp != null && rp instanceof Refreshable)
-                                                    Central.refreshPlugin((Refreshable) rp);
+                                                    Central.refreshPlugin(Central.getWorkspaceWorkspace(), (Refreshable) rp);
                                             } catch (Exception e) {
                                                 throw new RuntimeException(e);
                                             }
@@ -569,7 +569,7 @@ public class RepositoriesView extends ViewPart implements RepositoryListenerPlug
 
     private void doRefresh3() {
         // Reload repositories
-        List<RepositoryPlugin> repos = RepositoryUtils.listRepositories(true);
+        List<RepositoryPlugin> repos = RepositoryUtils.listRepositories(Central.getWorkspaceWorkspace(), true);
         viewer.setInput(repos);
 
         // Expand any repos that have the same name as a repository that
@@ -678,7 +678,7 @@ public class RepositoriesView extends ViewPart implements RepositoryListenerPlug
 
             RepositoryPlugin repositoryPlugin = getRepositoryPlugin(target);
             if (repositoryPlugin != null && repositoryPlugin instanceof Refreshable)
-                Central.refreshPlugin((Refreshable) repositoryPlugin);
+                Central.refreshPlugin(Central.getWorkspaceWorkspace(), (Refreshable) repositoryPlugin);
             return invoke == null || invoke == Boolean.FALSE ? false : true;
         } catch (Exception e) {
             return false;

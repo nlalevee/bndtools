@@ -432,9 +432,9 @@ public abstract class RepositoryBundleSelectionPart extends SectionPart implemen
             IFile resource = ResourcesPlugin.getWorkspace().getRoot().getFile(path);
             File projectDir = resource.getProject().getLocation().toFile();
             if (Project.BNDFILE.equals(resource.getName())) {
-                project = Central.getProject(projectDir);
+                project = Central.getModel(resource.getProject());
             } else {
-                project = new Project(Central.getWorkspace(), projectDir, resource.getLocation().toFile());
+                project = new Project(Central.getWorkspaceWorkspace(), projectDir, resource.getLocation().toFile());
             }
         } catch (Exception e) {
             logger.logError("Error getting project from editor model", e);

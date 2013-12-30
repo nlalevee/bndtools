@@ -69,7 +69,7 @@ public class ResolveOperation implements IRunnableWithProgress {
 
             File resource = model.getBndResource();
             if (model.isProjectFile()) {
-                Project project = Central.getProject(resource.getParentFile());
+                Project project = Central.getProject(Central.getWorkspaceWorkspace(), resource.getParentFile());
                 //
                 // run's in projects are based on the project
                 // and implicitly the ws
@@ -79,12 +79,12 @@ public class ResolveOperation implements IRunnableWithProgress {
                 //
                 // run's in bndrun files are the bndrun + workspace
                 //
-                Run run = new Run(Central.getWorkspace(), resource.getParentFile(), resource);
+                Run run = new Run(Central.getWorkspaceWorkspace(), resource.getParentFile(), resource);
                 model.setProject(run);
             }
 
-            ReporterLogService log = new ReporterLogService(Central.getWorkspace());
-            Map<Resource,List<Wire>> wirings = resolve.resolveRequired(model, Central.getWorkspace(), bndResolver, callbacks, log);
+            ReporterLogService log = new ReporterLogService(Central.getWorkspaceWorkspace());
+            Map<Resource,List<Wire>> wirings = resolve.resolveRequired(model, Central.getWorkspaceWorkspace(), bndResolver, callbacks, log);
             result = new ResolutionResult(Outcome.Resolved, wirings, null, status, logger.getLog());
             if (coordination != null)
                 coordination.end();

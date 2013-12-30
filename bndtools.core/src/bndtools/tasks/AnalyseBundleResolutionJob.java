@@ -177,7 +177,7 @@ public class AnalyseBundleResolutionJob extends Job {
 
         // Calculate the manifest
         try {
-            Project bndProject = Central.getInstance().getModel(JavaCore.create(project));
+            Project bndProject = Central.getModel(JavaCore.create(project).getProject());
             if (bndProject == null)
                 return null;
             Builder builder;

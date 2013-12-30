@@ -30,7 +30,6 @@ import org.bndtools.builder.classpath.BndContainerInitializer;
 import org.bndtools.utils.Predicate;
 import org.bndtools.utils.swt.SWTConcurrencyUtil;
 import org.bndtools.utils.workspace.FileUtils;
-import org.bndtools.utils.workspace.WorkspaceUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IMarker;
@@ -38,7 +37,6 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceDeltaVisitor;
-import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.resources.ProjectScope;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -124,7 +122,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
             listeners.fireBuildStarting(myProject);
             Project model = null;
             try {
-                model = Central.getProject(myProject.getLocation().toFile());
+                model = Central.getModel(myProject);
             } catch (Exception e) {
                 clearBuildMarkers();
                 addBuildMarkers(e.getMessage(), IMarker.SEVERITY_ERROR);
@@ -141,7 +139,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
             model.clear();
 
             // CASE 1: CNF changed
-            if (isCnfChanged()) {
+            if (isCnfChanged(model.getWorkspace())) {
                 log(LOG_BASIC, "cnf project changed");
                 model.refresh();
                 if (BndContainerInitializer.resetClasspaths(model, myProject, classpathErrors)) {
@@ -151,7 +149,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
                 }
 
                 // Notify the repository listeners that ALL repo contents may have changed.
-                List<RepositoryListenerPlugin> repoListeners = Central.getWorkspace().getPlugins(RepositoryListenerPlugin.class);
+                List<RepositoryListenerPlugin> repoListeners = model.getWorkspace().getPlugins(RepositoryListenerPlugin.class);
                 for (RepositoryListenerPlugin repoListener : repoListeners) {
                     repoListener.repositoriesRefreshed();
                 }
@@ -176,7 +174,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
                 }
                 log(LOG_FULL, "classpaths were not changed");
                 this.subBuilders = model.getSubBuilders();
-                rebuildIfLocalChanges(dependsOn, true);
+                rebuildIfLocalChanges(model.getWorkspace(), dependsOn, true);
                 return dependsOn;
             }
             // (NB: from now on the delta cannot be null, due to the check in
@@ -196,7 +194,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
 
             // CASE 4: local file changes
             this.subBuilders = model.getSubBuilders();
-            rebuildIfLocalChanges(dependsOn, false);
+            rebuildIfLocalChanges(model.getWorkspace(), dependsOn, false);
 
             return dependsOn;
         } catch (Exception e) {
@@ -242,7 +240,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
     protected void clean(IProgressMonitor monitor) throws CoreException {
         try {
             IProject myProject = getProject();
-            Project model = Central.getProject(myProject.getLocation().toFile());
+            Project model = Central.getModel(myProject);
             if (model == null)
                 return;
 
@@ -263,8 +261,8 @@ public class NewBuilder extends IncrementalProjectBuilder {
         }
     }
 
-    boolean isCnfChanged() throws Exception {
-        IProject cnfProject = WorkspaceUtils.findCnfProject();
+    boolean isCnfChanged(Workspace workspace) throws Exception {
+        IProject cnfProject = Central.getCnfIProject(workspace);
         if (cnfProject == null) {
             logger.logError("Bnd configuration project (cnf) is not available in the Eclipse workspace.", null);
             return false;
@@ -375,7 +373,6 @@ public class NewBuilder extends IncrementalProjectBuilder {
     }
 
     private Project getDependencyTargetChange() throws Exception {
-        IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
         Collection<Project> dependson = model.getDependson();
         log(LOG_FULL, "project depends on: %s", dependson);
 
@@ -385,8 +382,8 @@ public class NewBuilder extends IncrementalProjectBuilder {
             if (targetDir == null || !(targetDir.isDirectory()))
                 return dep;
 
-            IProject project = WorkspaceUtils.findOpenProject(wsroot, dep);
-            if (project == null) {
+            IProject project = Central.getIProject(dep);
+            if (project == null || !project.isOpen()) {
                 logger.logWarning(String.format("Dependency project '%s' from project '%s' is not in the Eclipse workspace.", dep.getName(), model.getName()), null);
                 return null;
             }
@@ -418,7 +415,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
     /**
      * @return Whether any files were built
      */
-    private boolean rebuildIfLocalChanges(IProject[] dependsOn, boolean forceBuild) throws Exception {
+    private boolean rebuildIfLocalChanges(Workspace bndWorkspace, IProject[] dependsOn, boolean forceBuild) throws Exception {
         log(LOG_FULL, "calculating local changes...");
 
         final Set<File> changedFiles = new HashSet<File>();
@@ -733,13 +730,12 @@ public class NewBuilder extends IncrementalProjectBuilder {
         Collection<Project> dependsOn = model.getDependson();
         List<IProject> result = new ArrayList<IProject>(dependsOn.size() + 1);
 
-        IProject cnfProject = WorkspaceUtils.findCnfProject();
+        IProject cnfProject = Central.getCnfIProject(model.getWorkspace());
         if (cnfProject != null)
             result.add(cnfProject);
 
-        IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
         for (Project project : dependsOn) {
-            IProject targetProj = WorkspaceUtils.findOpenProject(wsroot, project);
+            IProject targetProj = Central.getIProject(project);
             if (targetProj == null)
                 logger.logWarning("No open project in workspace for Bnd '-dependson' dependency: " + project.getName(), null);
             else
@@ -973,7 +969,7 @@ public class NewBuilder extends IncrementalProjectBuilder {
 
         ProjectDeltaVisitor(final IProject project, final Set<File> changedFiles) throws Exception {
             this.changedFiles = changedFiles;
-            this.model = Central.getProject(project.getLocation().toFile());
+            this.model = Central.getModel(project);
             if (this.model == null) {
                 this.targetDirFullPath = null;
                 this.bin = null;

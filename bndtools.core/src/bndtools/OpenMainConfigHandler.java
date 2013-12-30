@@ -19,7 +19,7 @@ public class OpenMainConfigHandler extends AbstractHandler {
 
     public Object execute(ExecutionEvent event) throws ExecutionException {
         try {
-            IFile buildFile = Central.getWorkspaceBuildFile();
+            IFile buildFile = Central.getWorkspaceBuildFile(Central.getWorkspaceWorkspace());
             if (buildFile == null)
                 return null;
 

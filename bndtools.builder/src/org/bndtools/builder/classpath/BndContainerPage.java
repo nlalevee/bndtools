@@ -62,7 +62,11 @@ public class BndContainerPage extends WizardPage implements IClasspathContainerP
      */
     public void initialize(IJavaProject project, IClasspathEntry[] currentEntries) {
         javaProject = project;
-        model = Central.getInstance().getModel(project);
+        try {
+            model = Central.getModel(project.getProject());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         basedir = project.getProject().getLocation().makeAbsolute().toFile();
     }
 
@@ -220,12 +224,9 @@ public class BndContainerPage extends WizardPage implements IClasspathContainerP
                     ps.close();
                 }
                 javaProject.getResource().refreshLocal(IResource.DEPTH_ONE, null);
-                model = Central.getInstance().getModel(javaProject);
+                model = Central.getModel(javaProject.getProject());
                 return model != null;
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (CoreException e) {
-                // TODO Auto-generated catch block
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

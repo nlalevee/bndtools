@@ -170,7 +170,7 @@ public class CnfSetupTask extends WorkspaceModifyOperation {
         }
 
         try {
-            Central.getWorkspace().refresh();
+            Central.getWorkspaceWorkspace().refresh();
         } catch (Exception e) {
             logger.logError("Unable to refresh Bnd workspace", e);
         }
