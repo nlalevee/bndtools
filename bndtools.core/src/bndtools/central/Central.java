@@ -28,6 +28,7 @@ import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceDeltaVisitor;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -67,8 +68,8 @@ public class Central implements IStartupParticipant {
     static final ConcurrentMap<String,Collection<IResource>> sourceFolderMap = new ConcurrentHashMap<String,Collection<IResource>>();
 
     private final BundleContext bundleContext;
-    private static final Map<IProject,Project> IProject2Project = new HashMap<IProject,Project>();
-    private static final Map<Project,IProject> Project2IProject = new HashMap<Project,IProject>();
+    private static final Map<String,Project> IProject2Project = new HashMap<String,Project>();
+    private static final Map<String,IProject> Project2IProject = new HashMap<String,IProject>();
     private final List<ModelListener> listeners = new CopyOnWriteArrayList<ModelListener>();
 
     private RepositoryListenerPluginTracker repoListenerTracker;
@@ -92,16 +93,45 @@ public class Central implements IStartupParticipant {
 
         repoListenerTracker = new RepositoryListenerPluginTracker(bundleContext);
         repoListenerTracker.open();
+
+        // listener to ensure the mapping between bnd projects and eclipse projects is consistent
+        IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        workspace.addResourceChangeListener(projectMonitor);
+        // ensure every project is mapped
+        for (IProject iproject : workspace.getRoot().getProjects()) {
+            getModel(iproject);
+        }
     }
 
     @Override
     public void stop() {
         repoListenerTracker.close();
 
+        ResourcesPlugin.getWorkspace().removeResourceChangeListener(projectMonitor);
+
         synchronized (Central.class) {
             instance = null;
         }
     }
+
+    private final IResourceChangeListener projectMonitor = new IResourceChangeListener() {
+        @Override
+        public void resourceChanged(IResourceChangeEvent event) {
+            if (event.getType() != IResourceChangeEvent.POST_CHANGE) {
+                return;
+            }
+            if ((event.getDelta().getFlags() & IResourceDelta.OPEN) != 0) {
+                IProject iproject = event.getResource().getProject();
+                if (iproject.isOpen()) {
+                    getModel(iproject);
+                } else {
+                    Project project = IProject2Project.get(iproject);
+                    Project2IProject.remove(project);
+                    IProject2Project.remove(iproject);
+                }
+            }
+        }
+    };
 
     public static Central getInstance() {
         synchronized (Central.class) {
@@ -110,25 +140,29 @@ public class Central implements IStartupParticipant {
     }
 
     public static Project getModel(IProject project) {
-        Project model = IProject2Project.get(project);
+        Project model = IProject2Project.get(project.getName());
         if (model == null) {
             File projectDir = project.getLocation().makeAbsolute().toFile().getAbsoluteFile();
             Workspace ws = getWorkspace(projectDir.getParentFile());
+            if (ws == null) {
+                return null;
+            }
             try {
                 model = ws.getProject(projectDir.getName());
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                // let's bet it is not an OSGi bundle project
+                return null;
             }
-            if (model != null) {
-                IProject2Project.put(project, model);
-                Project2IProject.put(model, project);
+            if (model != null && (model.isCnf() || model.isValid())) {
+                IProject2Project.put(project.getName(), model);
+                Project2IProject.put(model.getBase().getAbsolutePath(), project);
             }
         }
         return model;
     }
 
     public static IProject getIProject(Project model) {
-        return Project2IProject.get(model);
+        return Project2IProject.get(model.getBase().getAbsolutePath());
     }
 
     /**
@@ -220,12 +254,16 @@ public class Central implements IStartupParticipant {
         return matches[0];
     }
 
-    public synchronized static WorkspaceR5Repository getWorkspaceR5Repository() throws Exception {
+    public synchronized static WorkspaceR5Repository getWorkspaceR5Repository() {
         if (r5Repository != null)
             return r5Repository;
 
         r5Repository = new WorkspaceR5Repository();
-        r5Repository.init();
+        try {
+            r5Repository.init();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         return r5Repository;
     }
@@ -251,16 +289,26 @@ public class Central implements IStartupParticipant {
 
         Workspace newWorkspace = null;
 
+        boolean success = false;
         try {
             Workspace.setDriver(Constants.BNDDRIVER_ECLIPSE);
-            newWorkspace = Workspace.getWorkspace(workspaceDirAbsolute);
+            try {
+                newWorkspace = Workspace.getWorkspace(workspaceDirAbsolute);
+            } catch (Exception e) {
+                // let's bet it is not a workspace
+                return null;
+            }
 
             newWorkspace.addBasicPlugin(new WorkspaceListener(newWorkspace));
             newWorkspace.addBasicPlugin(instance.repoListenerTracker);
             newWorkspace.addBasicPlugin(getWorkspaceR5Repository());
 
             // Initialize projects in synchronized block
-            newWorkspace.getBuildOrder();
+            try {
+                newWorkspace.getBuildOrder();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 
             // Monitor changes in cnf so we can refresh the workspace
             addCnfChangeListener(newWorkspace);
@@ -274,12 +322,12 @@ public class Central implements IStartupParticipant {
                 callback.run(newWorkspace);
             }
 
+            success = true;
             return workspace;
-        } catch (final Exception e) {
-            if (newWorkspace != null) {
+        } finally {
+            if (!success && newWorkspace != null) {
                 newWorkspace.close();
             }
-            throw new RuntimeException(e);
         }
     }
 
@@ -402,23 +450,13 @@ public class Central implements IStartupParticipant {
         return null;
     }
 
-    public static IPath toPath(File file) throws Exception {
-        IPath result = null;
-
-        File absolute = file.getCanonicalFile();
-
+    public static IPath toPath(File file) {
         IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
-        IFile[] candidates = wsroot.findFilesForLocationURI(absolute.toURI());
+        IFile[] candidates = wsroot.findFilesForLocationURI(file.toURI());
         if (candidates != null && candidates.length > 0) {
-            result = candidates[0].getFullPath();
-        } else {
-            String workspacePath = getWorkspaceWorkspace().getBase().getAbsolutePath();
-            String absolutePath = absolute.getPath();
-            if (absolutePath.startsWith(workspacePath))
-                result = new Path(absolutePath.substring(workspacePath.length()));
+            return candidates[0].getFullPath();
         }
-
-        return result;
+        return new Path(file.getAbsolutePath());
     }
 
     public static void refresh(IPath path) {
@@ -558,9 +596,10 @@ public class Central implements IStartupParticipant {
         if (cnfProject != null) {
             return cnfProject;
         }
+        File workspaceDir = workspace.getBase().getAbsoluteFile();
         for (IProject project : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
-            Project model = getModel(project);
-            if (model != null && model.getWorkspace().equals(workspace) && model.isCnf()) {
+            File projectDir = project.getLocation().toFile().getAbsoluteFile();
+            if (projectDir.getParentFile().equals(workspaceDir) && projectDir.getName().equals("cnf")) {
                 cnfIProjects.put(workspace, project);
                 return project;
             }

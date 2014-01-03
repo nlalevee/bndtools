@@ -116,7 +116,11 @@ public class FileUtils {
             return null;
         }
 
-        return project.getFolder(filePath.substring(projectPath.length()));
+        String folder = filePath.substring(projectPath.length());
+        if (folder.length() == 0) {
+        	return project;
+        }
+		return project.getFolder(folder);
     }
 
     public static IResource toWorkspaceResource(File file) {

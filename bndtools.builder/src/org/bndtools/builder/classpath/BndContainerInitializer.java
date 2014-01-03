@@ -48,7 +48,6 @@ import aQute.bnd.build.Project;
 import aQute.bnd.build.Workspace;
 import aQute.bnd.header.Parameters;
 import bndtools.central.Central;
-import bndtools.central.RefreshFileJob;
 
 /**
  * A bnd container reads the bnd.bnd file in the project directory and use the information in there to establish the
@@ -218,7 +217,7 @@ public class BndContainerInitializer extends ClasspathContainerInitializer imple
         }
 
         for (Container c : containers) {
-            IClasspathEntry cpe;
+            IClasspathEntry cpe = null;
 
             if (c.getError() == null) {
                 File file = c.getFile();
@@ -241,31 +240,33 @@ public class BndContainerInitializer extends ClasspathContainerInitializer imple
                     default :
                         break;
                     }
+                    continue;
                 }
 
-                IPath p = null;
-                try {
-                    p = fileToPath(file);
-                } catch (Exception e) {
-                    errors.add(String.format("Failed to convert file %s to Eclipse path: %s: %s", file, e.getClass().getName(), e.getMessage()));
-                }
+                IPath p = Central.toPath(file);
                 if (p != null) {
                     IClasspathAttribute[] extraAttrs = calculateExtraClasspathAttrs(c);
 
                     if (c.getType() == Container.TYPE.PROJECT) {
                         IResource resource = ResourcesPlugin.getWorkspace().getRoot().getFile(p);
-                        List<IAccessRule> rules = projectAccessRules.get(c.getProject());
-                        IAccessRule[] accessRules = null;
-                        if (rules != null) {
-                            rules.add(JavaCore.newAccessRule(new Path("**"), IAccessRule.K_NON_ACCESSIBLE));
-                            accessRules = rules.toArray(new IAccessRule[rules.size()]);
+                        if (resource == null) {
+                            errors.add(String.format("Failed to convert file %s to Eclipse project", file));
+                        } else {
+                            List<IAccessRule> rules = projectAccessRules.get(c.getProject());
+                            IAccessRule[] accessRules = null;
+                            if (rules != null) {
+                                rules.add(JavaCore.newAccessRule(new Path("**"), IAccessRule.K_NON_ACCESSIBLE));
+                                accessRules = rules.toArray(new IAccessRule[rules.size()]);
+                            }
+                            cpe = JavaCore.newProjectEntry(resource.getProject().getFullPath(), accessRules, false, extraAttrs, true);
                         }
-                        cpe = JavaCore.newProjectEntry(resource.getProject().getFullPath(), accessRules, false, extraAttrs, true);
                     } else {
                         IAccessRule[] accessRules = calculateRepoBundleAccessRules(c);
                         cpe = JavaCore.newLibraryEntry(p, null, null, accessRules, extraAttrs, false);
                     }
-                    result.add(cpe);
+                    if (cpe != null) {
+                        result.add(cpe);
+                    }
                 }
             } else {
                 errors.add(c.getError());
@@ -388,15 +389,4 @@ public class BndContainerInitializer extends ClasspathContainerInitializer imple
         }
     }
 
-    protected static IPath fileToPath(File file) throws Exception {
-        IPath path = Central.toPath(file);
-        if (path == null)
-            path = Path.fromOSString(file.getAbsolutePath());
-
-        RefreshFileJob refreshJob = new RefreshFileJob(file, false);
-        if (refreshJob.needsToSchedule())
-            refreshJob.schedule(100);
-
-        return path;
-    }
 }
